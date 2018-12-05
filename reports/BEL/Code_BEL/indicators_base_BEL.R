@@ -17,88 +17,170 @@ year <- 2013
 source("R/_connection.R")
 source("R/_setup.R")
 
+# Subsetting ------------------------------------------------------------------
 
-# Subsetting --------------------------------------------------------------
+# To get useful results we subset to income >= 0
+silc.pos.p1 <- silc.rph %>% filter(income_p1_1 > 0, income_p1_2 > 0, 
+                                   income_p1_3 > 0)
+                                   
+silc.pos.p2 <- silc.rph %>% filter(income_p2_1 > 0, income_p2_2 > 0, 
+                                   income_p2_3 > 0, age >= 20)   
 
-# To get useful results we may want to subset to only positive income
-silc.pd.inc <- silc.pd %>% filter(py010g > 0)
-silc.hd.inc <- silc.hd %>% filter(hy010 > 0)
+# Creating Survey Objects -----------------------------------------------------
 
-# Creating Survey Objects -------------------------------------------------
+silc.p1.svy <- svydesign(ids =  ~ id_h,
+                         weights = ~rb050,
+                         data = silc.pos.p1) %>% convey_prep()
 
-silc.pd.svy <- svydesign(ids =  ~ id_h,
-                         strata = ~db020,
-                         weights = ~pb040,
-                         data = silc.pd) %>% convey_prep()
+silc.p2.svy <- svydesign(ids =  ~ id_h,
+                         weights = ~rb050,
+                         data = silc.pos.p2) %>% convey_prep()
 
-silc.hd.svy <- svydesign(ids = ~id_h,
-                         strata = ~db020,
-                         weights = ~db090,
-                         data = silc.hd) %>% convey_prep()
+# Indicators ------------------------------------------------------------------
 
+# P1 EUROSTAT -----------------------------------------------------------------
 
-# Indicators --------------------------------------------------------------
+# Pre-tax factor income (Canberra: primary income) ----------------------------
 
-# Mean Income
-#
-svymean(~total.inc, silc.pd.svy)
-svymean(~hy010, silc.hd.svy)
-# For comparing countries
-# svyby(~total.inc, ~as.factor(db020), silc.pd.svy, svymean)
-# svyby(~hy010, ~as.factor(db020), silc.hd.svy, svymean)
+# Mean
+mean_p1_1 <- svymean(~income_p1_1,silc.p1.svy)
 
-# Median Income
-#
-svyquantile(~total.inc, silc.pd.svy, quantiles = c(0.5))
-svyquantile(~hy010, silc.hd.svy, quantiles = c(0.5))
+# Median
+median_p1_1 <- svyquantile(~income_p1_1,silc.p1.svy,quantile=c(0.5))
 
-# For comparing countries
-# svyby(~total.inc, ~as.factor(db020), silc.pd.svy,
-#       svyquantile, ~total.inc, quantiles = c(0.5), keep.var = FALSE)
-# svyby(~hy010, ~as.factor(db020), silc.hd.svy,
-#       svyquantile, ~hy010, quantiles = c(0.5), keep.var = FALSE)
+# Gini
+gini_p1_1 <- svygini(~income_p1_1,silc.p1.svy)
 
-# Decile Points
-#
-svyquantile(~total.inc, silc.pd.svy, quantiles = seq(0, 1, 0.1))
-svyquantile(~hy010, silc.hd.svy, quantiles = seq(0, 1, 0.1))
-# For comparing countries
-# svyby(~total.inc, ~as.factor(db020), silc.pd.svy, 
-#       svyquantile, ~total.inc, quantiles = seq(0, 1, 0.1), keep.var = FALSE)
-# svyby(~hy010, ~as.factor(hb020), silc.pd.svy, 
-#       svyquantile, ~total.inc, quantiles = seq(0, 1, 0.1), keep.var = FALSE)
+# P80/P20
+p80p20_p1_1 <- svyqsr(~income_p1_1,silc.p1.svy)
 
-# Quantile Share Ratio
-#
-svyqsr(~total.inc, silc.pd.svy, 0.2, 0.8)
-svyqsr(~hy010, silc.hd.svy, 0.2, 0.8)
-# For comparing countries
-# svyby(~total.inc, ~as.factor(db020), silc.pd.svy, svyqsr, 0.2, 0.8)
-# svyby(~hy010, ~as.factor(db020), silc.hd.svy, svyqsr, 0.2, 0.8)
+# Top 10% share
+top10_p1_1 <- svytotal(~income_p1_1,subset(silc.p1.svy, income_p1_1>=
+          as.numeric(svyquantile(~income_p1_1,silc.p1.svy,quantile=c(0.9)))),
+          na.rm=TRUE)/svytotal(~income_p1_1,silc.p1.svy,na.rm=TRUE)
 
-# Top 10% Income Share
-#
-svytotal(~total.inc, subset(silc.pd.svy, pb020 == country & total.inc >= 
-                           as.numeric(svyquantile(~total.inc, silc.pd.svy, quantile = 0.9)))) / 
-  svytotal(~total.inc, subset(silc.pd.svy, pb020 == country))
-svytotal(~hy010, subset(silc.hd.svy, db020 == country & hy010 >= 
-                          as.numeric(svyquantile(~hy010, silc.hd.svy, quantile = 0.9)))) /
-  svytotal(~hy010,subset(silc.hd.svy, db020 == country))
+# Pre-tax national income -----------------------------------------------------
 
-# Gini Coefficient
-#
-svygini(~total.inc, silc.pd.svy)
-svygini(~hy010, silc.hd.svy)
-# For comparing countries
-# svyby(~total.inc, ~as.factor(db020), silc.pd.svy, svygini)
-# svyby(~hy010, ~as.factor(db020), silc.hd.svy, svygini)
+# Mean
+mean_p1_2 <- svymean(~income_p1_2,silc.p1.svy)
 
-# Theil Index
-#
-svygei(~total.inc, silc.pd.svy, epsilon = 1)
-svygei(~hy010, silc.hd.svy, epsilon = 1)
-# For comparing countries
-# svyby(~total.inc, ~as.factor(db020), silc.pd.svy,
-#      svygei, epsilon = 1)
-# svyby(~hy010, ~as.factor(db020), silc.hd.svy,
-#      svygei, epsilon = 1)
+# Median
+median_p1_2 <- svyquantile(~income_p1_2,silc.p1.svy,quantile=c(0.5))
+
+# Gini
+gini_p1_2 <- svygini(~income_p1_2,silc.p1.svy)
+
+# P80/P20
+p80p20_p1_2 <- svyqsr(~income_p1_2,silc.p1.svy)
+
+# Top 10% share
+top10_p1_2 <- svytotal(~income_p1_2,subset(silc.p1.svy, income_p1_2>=
+          as.numeric(svyquantile(~income_p1_2,silc.p1.svy,quantile=c(0.9)))),
+          na.rm=TRUE)/svytotal(~income_p1_2,silc.p1.svy,na.rm=TRUE)
+
+# Post-tax disposable income --------------------------------------------------
+
+# Mean
+mean_p1_3 <- svymean(~income_p1_3,silc.p1.svy)
+
+# Median
+median_p1_3 <- svyquantile(~income_p1_3,silc.p1.svy,quantile=c(0.5))
+
+# Gini
+gini_p1_3 <- svygini(~income_p1_3,silc.p1.svy)
+
+# P80/P20
+p80p20_p1_3 <- svyqsr(~income_p1_3,silc.p1.svy)
+
+# Top 10% share
+top10_p1_3 <- svytotal(~income_p1_3,subset(silc.p1.svy, income_p1_3>=
+         as.numeric(svyquantile(~income_p1_3,silc.p1.svy,quantile=c(0.9)))),
+         na.rm=TRUE)/svytotal(~income_p1_3,silc.p1.svy,na.rm=TRUE)
+
+# -----------------------------------------------------------------------------
+
+# P2 WID WORLD ----------------------------------------------------------------
+
+# Pre-tax factor income (Canberra: primary income) ----------------------------
+
+# Mean
+mean_p2_1 <- svymean(~income_p2_1,silc.p2.svy)
+
+# Median
+median_p2_1 <- svyquantile(~income_p2_1,silc.p2.svy,quantile=c(0.5))
+
+# Gini
+gini_p2_1 <- svygini(~income_p2_1,silc.p2.svy)
+
+# P80/P20
+p80p20_p2_1 <- svyqsr(~income_p2_1,silc.p2.svy)
+
+# Top 10% share
+top10_p2_1 <- svytotal(~income_p2_1,subset(silc.p2.svy, income_p2_1>=
+         as.numeric(svyquantile(~income_p2_1,silc.p2.svy,quantile=c(0.9)))),
+         na.rm=TRUE)/svytotal(~income_p2_1,silc.p2.svy,na.rm=TRUE)
+
+# Pre-tax national income -----------------------------------------------------
+
+# Mean
+mean_p2_2 <- svymean(~income_p2_2,silc.p2.svy)
+
+# Median
+median_p2_2 <- svyquantile(~income_p2_2,silc.p2.svy,quantile=c(0.5))
+
+# Gini
+gini_p2_2 <- svygini(~income_p2_2,silc.p2.svy)
+
+# P80/P20
+p80p20_p2_2 <- svyqsr(~income_p2_2,silc.p2.svy)
+
+# Top 10% share
+top10_p2_2 <- svytotal(~income_p2_2,subset(silc.p2.svy, income_p2_2>=
+         as.numeric(svyquantile(~income_p2_2,silc.p2.svy,quantile=c(0.9)))),
+         na.rm=TRUE)/svytotal(~income_p2_2,silc.p2.svy,na.rm=TRUE)
+
+# Post-tax disposable income --------------------------------------------------
+
+# Mean
+mean_p2_3 <- svymean(~income_p2_3,silc.p2.svy)
+
+# Median
+median_p2_3 <- svyquantile(~income_p2_3,silc.p2.svy,quantile=c(0.5))
+
+# Gini
+gini_p2_3 <- svygini(~income_p2_3,silc.p2.svy)
+
+# P80/P20
+p80p20_p2_3 <- svyqsr(~income_p2_3,silc.p2.svy)
+
+# Top 10% share
+top10_p2_3 <- svytotal(~income_p2_3,subset(silc.p2.svy, income_p2_3>=
+         as.numeric(svyquantile(~income_p2_3,silc.p2.svy,quantile=c(0.9)))),
+         na.rm=TRUE)/svytotal(~income_p2_3,silc.p2.svy,na.rm=TRUE)
+
+# Tables ----------------------------------------------------------------------
+
+measures <-c('Mean', 'Median', 'Gini','P80/P20','Top 10% share')
+income_concept <- c('Pre-tax factor income','Pre-tax national income', 
+                    'Post-tax disposable income')
+
+# P1 Eurostat
+table1 <- data.frame(round(c(mean_p1_1, median_p1_1, gini_p1_1, p80p20_p1_1, 
+                          top10_p1_1), digits = 4),
+                  round(c(mean_p1_2, median_p1_2, gini_p1_2, p80p20_p1_2, 
+                          top10_p1_2), digits = 4), 
+                  round(c(mean_p1_3, median_p1_3, gini_p1_3, p80p20_p1_3, 
+                          top10_p1_3), digits = 4), row.names = measures)
+
+colnames(table1) <- income_concept
+
+# P2 WID WORLD
+table2 <- data.frame(round(c(mean_p2_1, median_p2_1, gini_p2_1, p80p20_p2_1, 
+                             top10_p2_1), digits = 4),
+                     round(c(mean_p2_2, median_p2_2, gini_p2_2, p80p20_p2_2, 
+                             top10_p2_2), digits = 4), 
+                     round(c(mean_p2_3, median_p2_3, gini_p2_3, p80p20_p2_3, 
+                             top10_p2_3), digits = 4), row.names = measures)
+
+colnames(table2) <- income_concept
+
