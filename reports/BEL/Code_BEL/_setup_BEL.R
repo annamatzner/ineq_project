@@ -44,8 +44,8 @@ silc.rp <- left_join(silc.r, silc.p)
 # Create age, household ID, gender variables
 silc.rp <- silc.rp %>% 
   mutate(age = rb010 - rb080,
-         gender = factor(rb090,labels = c('Male','Female')),
-         id_h = paste0(rb020,rx030)) 
+         gender = factor(rb090, labels = c('Male','Female')),
+         id_h = paste0(rb020, rx030)) 
 
 # Create unique IDs for merging, merge country and household ID h,d
 
