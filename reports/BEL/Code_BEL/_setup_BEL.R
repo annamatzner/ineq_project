@@ -65,9 +65,8 @@ silc.rph[is.na(silc.rph)] <- 0
 silc.rph <- silc.rph %>% mutate(pincome1 = py010g + py050g + py080g + py021g)
 
 # Sum up personal income of HH
-silc.rph <- silc.rph %>% group_by(id_h) %>% 
-  do({sum_pincome1 = sum(distinct(.,pincome1)$pincome1); 
-  mutate(., sum_pincome1 = sum_pincome1)})
+silc.rph <- silc.rph %>% group_by(id_h) %>%
+  mutate(sum_pincome1 = sum(pincome1))
 
 # Equivalised HH income per person
 silc.rph <- silc.rph %>% 
@@ -79,9 +78,8 @@ silc.rph <- silc.rph %>%
 silc.rph <- silc.rph %>% mutate(pincome2 = py090g + py100g)
 
 # Sum up personal income of HH
-silc.rph <- silc.rph %>% group_by(id_h) %>% 
-  do({sum_pincome2 = sum(distinct(.,pincome2)$pincome2); 
-  mutate(., sum_pincome2 = sum_pincome2)})
+silc.rph <- silc.rph %>% group_by(id_h) %>%
+  mutate(sum_pincome2 = sum(pincome2))
 
 # Equivalised HH income per person
 silc.rph <- silc.rph %>%
@@ -93,9 +91,8 @@ silc.rph <- silc.rph %>%
 silc.rph <- silc.rph %>% mutate(pincome3 = py110g + py120g + py130g + py140g)
 
 # Sum up personal income of HH
-silc.rph <- silc.rph %>% group_by(id_h) %>% 
-  do({sum_pincome3 = sum(distinct(.,pincome3)$pincome3); 
-  mutate(., sum_pincome3 = sum_pincome3)})
+silc.rph <- silc.rph %>% group_by(id_h) %>%
+  mutate(sum_pincome3 = sum(pincome3))
 
 # Equivalised HH income per person
 silc.rph <- silc.rph %>%
@@ -126,6 +123,17 @@ silc.rph <- silc.rph %>%
 silc.rph <- silc.rph %>%
   mutate(income_p2_3 = income_p2_2 + py110g + py120g + py130g + py140g + 
            (hy050g + hy060g + hy070g + hy080g - hy120g - hy130g - hy140g)/n)
+
+# Subsetting ------------------------------------------------------------------
+
+# To get useful results we subset to income >= 0
+silc.pos.p1 <- silc.rph %>% filter(income_p1_1 > 0, income_p1_2 > 0, 
+                                   income_p1_3 > 0)
+
+
+# Also subset to age >=20
+silc.pos.p2 <- silc.rph %>% filter(income_p2_1 > 0, income_p2_2 > 0, 
+                                   income_p2_3 > 0, age >= 20)   
 
 # Fin -------------------------------------------------------------------------
 
