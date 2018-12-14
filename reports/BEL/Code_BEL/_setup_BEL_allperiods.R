@@ -2,7 +2,7 @@
 
 # Setup Data Belgium
 # prepare data frame and generate income variables
-# time frame: one year
+# time frame: all available years
 
 # -----------------------------------------------------------------------------
 
@@ -11,27 +11,60 @@ library(dplyr)
 # Prepare Data ----------------------------------------------------------------
 
 # Download data
-silc.p <- tbl(pg, "c13p") %>%
-  filter(pb010 == 2013 & pb020 == 'BE') %>%
-  select(pb030, py010g, py050g, py021g, py080g, py090g, py100g, py110g, py120g, 
+silc.p <- tbl(pg, "pp") %>%
+  filter(pb020 == 'BE') %>%
+  select(pb010, pb030, py010g, py020 py050g, py080g, py090g, py100g, py110g, py120g, 
          py130g, py140g) %>%
   collect(n = Inf)
 
-silc.h <- tbl(pg, "c13h") %>%
-  filter(hb010 == 2013 & hb020 == 'BE') %>%
+silc.h <- tbl(pg, "hh") %>%
+  filter(hb020 == 'BE') %>%
   select(hb010, hb020, hb030, hy020, hy030g, hy040g, hy050g, hy060g, hy070g, 
          hy080g, hy090g, hy110g, hy120g, hy130g, hy140g, hx040, hx050) %>%
   collect(n = Inf)
 
-silc.d <- tbl(pg, "c13d") %>%
-  filter(db010 == 2013 & db020 == 'BE') %>%
+silc.d <- tbl(pg, "dd") %>%
+  filter(db020 == 'BE') %>%
   select(db010, db020, db030, db040, db090) %>%
   collect(n = Inf)
 
-silc.r <- tbl(pg, "c13r") %>% 
-  filter(rb010 == 2013 & rb020 == 'BE') %>%
+silc.r <- tbl(pg, "rr") %>% 
+  filter( rb020 == 'BE') %>%
   select(rb010, rb020, rb030, rb050, rb080, rb090, rx030) %>%
   collect(n = Inf)
+
+# Include py021g (company car) for all years ----------------------------------
+
+c07p <- tbl(pg, "c07p") %>% filter(pb020 == 'BE') %>% 
+  select(pb010, pb030, py021g) %>% collect(n = Inf)
+
+c08p <- tbl(pg, "c08p") %>% filter(pb020 == 'BE') %>% 
+  select(pb010, pb030, py021g) %>% collect(n = Inf)
+
+c09p <- tbl(pg, "c09p") %>% filter(pb020 == 'BE') %>% 
+  select(pb010, pb030, py021g) %>% collect(n = Inf)
+
+c10p <- tbl(pg, "c10p") %>% filter(pb020 == 'BE') %>% 
+  select(pb010, pb030, py021g) %>% collect(n = Inf)
+
+c11p <- tbl(pg, "c11p") %>% filter(pb020 == 'BE') %>% 
+  select(pb010, pb030, py021g) %>% collect(n = Inf)
+
+c12p <- tbl(pg, "c12p") %>% filter(pb020 == 'BE') %>% 
+  select(pb010, pb030,py021g) %>% collect(n = Inf)
+
+c13p <- tbl(pg, "c13p") %>% filter(pb020 == 'BE') %>% 
+  select(pb010, pb030, py021g) %>% collect(n = Inf)
+
+cxxp <- bind_rows(c07p, c08p, c09p, c10p, c11p, c12p, c13p)
+
+# rm(c07p, c08p, c09p, c10p, c11p, c12p, c13p)
+
+# Merge cxxp with silc.p to include the py021g variable for 2007-2013
+
+silc.p <- left_join(silc.p, cxxp %>% select(py021g, pb010, pb030))
+
+# rm(cxxp)
 
 # Rename rb030, pb030 to personal_id
 silc.r <- silc.r %>% rename(personal_id = rb030)
@@ -44,13 +77,13 @@ silc.rp <- left_join(silc.r, silc.p)
 silc.rp <- silc.rp %>% 
   mutate(age = rb010 - rb080,
          gender = factor(rb090, labels = c('Male','Female')),
-         id_h = paste0(rb020, rx030)) 
+         id_h = paste0(rb020, rx030, rb010)) 
 
 # Create unique IDs for merging, merge country and household ID h,d
 
-silc.h <- silc.h %>% mutate(id_h = paste0(hb020, hb030))
+silc.h <- silc.h %>% mutate(id_h = paste0(hb020, hb030, hb010))
 
-silc.d <- silc.d %>% mutate(id_h = paste0(db020, db030))
+silc.d <- silc.d %>% mutate(id_h = paste0(db020, db030, db010))
 
 # Merge silc.rp and silc.h
 silc.rph <- left_join(silc.rp, silc.h)
