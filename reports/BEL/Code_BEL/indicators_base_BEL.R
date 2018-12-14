@@ -10,21 +10,21 @@ library(convey)
 
 # -----------------------------------------------------------------------------
 
-country <- "CZ"
-year <- 2013
+#country <- "CZ"
+#ear <- 2013
 
 # Source the Setup scripts to provide merged household and personal data
-source("R/_connection.R")
-source("R/_setup.R")
+#source("R/_connection.R")
+#source("R/_setup.R")
 
 # Subsetting ------------------------------------------------------------------
 
 # To get useful results we subset to income >= 0
-silc.pos.p1 <- silc.rph %>% filter(income_p1_1 > 0, income_p1_2 > 0, 
-                                   income_p1_3 > 0)
+#silc.pos.p1 <- silc.rph %>% filter(income_p1_1 > 0, income_p1_2 > 0, 
+#                                   income_p1_3 > 0)
                                    
-silc.pos.p2 <- silc.rph %>% filter(income_p2_1 > 0, income_p2_2 > 0, 
-                                   income_p2_3 > 0, age >= 20)   
+#silc.pos.p2 <- silc.rph %>% filter(income_p2_1 > 0, income_p2_2 > 0, 
+#                                   income_p2_3 > 0, age >= 20)   
 
 # Creating Survey Objects -----------------------------------------------------
 
