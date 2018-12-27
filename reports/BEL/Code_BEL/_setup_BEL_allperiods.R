@@ -120,7 +120,7 @@ silc.rph <- silc.rph %>% group_by(id_h) %>%
 
 # Equivalised HH income per person
 silc.rph <- silc.rph %>%
-  mutate(income_p1_2 = (income_p1_1 + sum_pincome2 / hx050))
+  mutate(income_p1_2 = (income_p1_1 + (sum_pincome2 / hx050)))
 
 # Post-tax national income ----------------------------------------------------
 
