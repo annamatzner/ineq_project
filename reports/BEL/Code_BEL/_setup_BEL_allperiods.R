@@ -2,7 +2,7 @@
 
 # Setup Data Belgium
 # prepare data frame and generate income variables
-# time frame: all available years
+# time frame: 2004 - 2017
 
 # -----------------------------------------------------------------------------
 
@@ -10,11 +10,11 @@ library(dplyr)
 
 # Prepare Data ----------------------------------------------------------------
 
-# Download data
+# Download data for 2004 - 2013
 silc.p <- tbl(pg, "pp") %>%
   filter(pb020 == 'BE') %>%
-  select(pb010, pb030, py010g, py020, py050g, py080g, py090g, py100g, py110g, py120g, 
-         py130g, py140g) %>%
+  select(pb010, pb030, py010g, py020g, py050g, py080g, py090g, py100g, py110g, 
+         py120g, py130g, py140g) %>%
   collect(n = Inf)
 
 silc.h <- tbl(pg, "hh") %>%
@@ -34,9 +34,6 @@ silc.r <- tbl(pg, "rr") %>%
   collect(n = Inf)
 
 # Include py021g (company car) for all years ----------------------------------
-
-c04p <- tbl(pg, "c04p") %>% filter(pb020 == 'BE') %>% 
-  select(pb010, pb030, py021g) %>% collect(n = Inf)
 
 c07p <- tbl(pg, "c07p") %>% filter(pb020 == 'BE') %>% 
   select(pb010, pb030, py021g) %>% collect(n = Inf)
@@ -59,19 +56,78 @@ c12p <- tbl(pg, "c12p") %>% filter(pb020 == 'BE') %>%
 c13p <- tbl(pg, "c13p") %>% filter(pb020 == 'BE') %>% 
   select(pb010, pb030, py021g) %>% collect(n = Inf)
 
-cxxp <- bind_rows(c07p, c08p, c09p, c10p, c11p, c12p, c13p)
+c14p <- tbl(pg, "c14p") %>% filter(pb020 == 'BE') %>% 
+  select(pb010, pb030, py010g, py050g, py080g, py090g, py100g, py110g, 
+         py120g, py130g, py140g, py021g) %>% collect(n = Inf)
 
-# rm(c07p, c08p, c09p, c10p, c11p, c12p, c13p)
+c15p <- tbl(pg, "c15p") %>% filter(pb020 == 'BE') %>% 
+  select(pb010, pb030, py010g, py050g, py080g, py090g, py100g, py110g, 
+         py120g, py130g, py140g, py021g) %>% collect(n = Inf)
 
-# Merge cxxp with silc.p to include the py021g variable for 2007-2013
+c16p <- tbl(pg, "c16p") %>% filter(pb020 == 'BE') %>% 
+  select(pb010, pb030, py010g, py050g, py080g, py090g, py100g, py110g, 
+         py120g, py130g, py140g, py021g) %>% collect(n = Inf)
 
-silc.p <- left_join(silc.p, cxxp %>% select(py021g, pb010, pb030))
+c17p <- tbl(pg, "c17p") %>% filter(pb020 == 'BE') %>% 
+  select(pb010, pb030, py010g, py050g, py080g, py090g, py100g, py110g, 
+         py120g, py130g, py140g, py021g) %>% collect(n = Inf)
 
-# rm(cxxp)
+cxxp <- bind_rows(c07p, c08p, c09p, c10p, c11p, c12p, c13p, c14p, c15p, c16p, 
+                  c17p)
+
+silc.p <- full_join(silc.p, cxxp) 
+
+
+# Download remaining data for 2014 - 2017
+
+# H Data
+
+c14h <- tbl(pg, "c14h") %>% filter(hb020 == 'BE') %>% 
+  select(hb010, hb020, hb030, hy020, hy030g, hy040g, hy050g, hy060g, hy070g, 
+         hy080g, hy090g, hy110g, hy120g, hy130g, hy140g, hx040, 
+         hx050) %>% collect(n = Inf)
+
+c15h <- tbl(pg, "c15h") %>% filter(hb020 == 'BE') %>% 
+  select(hb010, hb020, hb030, hy020, hy030g, hy040g, hy050g, hy060g, hy070g, 
+         hy080g, hy090g, hy110g, hy120g, hy130g, hy140g, hx040, 
+         hx050) %>% collect(n = Inf)
+
+c16h <- tbl(pg, "c16h") %>% filter(hb020 == 'BE') %>% 
+  select(hb010, hb020, hb030, hy020, hy030g, hy040g, hy050g, hy060g, hy070g, 
+         hy080g, hy090g, hy110g, hy120g, hy130g, hy140g, hx040, 
+         hx050) %>% collect(n = Inf)
+
+c17h <- tbl(pg, "c17h") %>% filter(hb020 == 'BE') %>% 
+  select(hb010, hb020, hb030, hy020, hy030g, hy040g, hy050g, hy060g, hy070g, 
+         hy080g, hy090g, hy110g, hy120g, hy130g, hy140g, hx040, 
+         hx050) %>% collect(n = Inf)
+
+cxxh <- bind_rows(c14h, c15h, c16h, c17h)
+silc.h <- full_join(silc.h, cxxh)
+
+
+# R Data
+
+c14r <- tbl(pg, "c14r") %>% filter(rb020 == 'BE') %>% 
+  select(rb010, rb020, rb030, rb050, rb080, rb090, rx030) %>% collect(n = Inf)
+
+c15r <- tbl(pg, "c15r") %>% filter(rb020 == 'BE') %>% 
+  select(rb010, rb020, rb030, rb050, rb080, rb090, rx030) %>% collect(n = Inf)
+
+c16r <- tbl(pg, "c16r") %>% filter(rb020 == 'BE') %>% 
+  select(rb010, rb020, rb030, rb050, rb080, rb090, rx030) %>% collect(n = Inf)
+
+cxxr <- bind_rows(c14r, c15r, c16r, c17r)
+silc.r <- full_join(silc.r, cxxr)
+
+
+# generate car variable 
+silc.p$car <- silc.p$py020g
+silc.p$car <- ifelse(silc.p$pb010 > 2006, silc.p$py021g, silc.p$car)
 
 # Rename rb030, pb030 to personal_id
-silc.r <- silc.r %>% rename(personal_id = rb030)
-silc.p <- silc.p %>% rename(personal_id = pb030)
+silc.r <- silc.r %>% rename(personal_id = paste0(rb030, rb010))
+silc.p <- silc.p %>% rename(personal_id = paste0(pb030, pb010))
 
 # merge silc.r and silc.p
 silc.rp <- left_join(silc.r, silc.p)
@@ -80,19 +136,21 @@ silc.rp <- left_join(silc.r, silc.p)
 silc.rp <- silc.rp %>% 
   mutate(age = rb010 - rb080,
          gender = factor(rb090, labels = c('Male','Female')),
-         id_h = paste0(rb020, rx030, rb010)) 
+         id_h = paste0(rx030, rb010)) 
 
 # Create unique IDs for merging, merge country and household ID h,d
 
-silc.h <- silc.h %>% mutate(id_h = paste0(hb020, hb030, hb010))
+silc.h <- silc.h %>% mutate(id_h = paste0(hb030, hb010))
 
-silc.d <- silc.d %>% mutate(id_h = paste0(db020, db030, db010))
+silc.d <- silc.d %>% mutate(id_h = paste0(db030, db010))
 
 # Merge silc.rp and silc.h
-silc.rph <- left_join(silc.rp, silc.h)
+silc.rph <- left_join(silc.rp, silc.h, by = c("id_h", "rb010" = "hb010", "rb020" = "hb020", "rx030" = "hb030"))
 
 # Replace NA's in silc.rph by 0
 silc.rph[is.na(silc.rph)] <- 0
+# Since some NA's (gender, around 40 observations) cannot be replaced - omit!
+silc.rph <- na.omit(silc.rph)
 
 # P1 EUROSTAT -----------------------------------------------------------------
 

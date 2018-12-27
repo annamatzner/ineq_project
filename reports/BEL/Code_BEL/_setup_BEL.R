@@ -11,25 +11,25 @@ library(dplyr)
 # Prepare Data ----------------------------------------------------------------
 
 # Download data
-silc.p <- tbl(pg, "c13p") %>%
-  filter(pb010 == 2013 & pb020 == 'BE') %>%
+silc.p <- tbl(pg, "c17p") %>%
+  filter(pb020 == 'BE') %>%
   select(pb030, py010g, py050g, py021g, py080g, py090g, py100g, py110g, py120g, 
          py130g, py140g) %>%
   collect(n = Inf)
 
-silc.h <- tbl(pg, "c13h") %>%
-  filter(hb010 == 2013 & hb020 == 'BE') %>%
+silc.h <- tbl(pg, "c17h") %>%
+  filter(hb020 == 'BE') %>%
   select(hb010, hb020, hb030, hy020, hy030g, hy040g, hy050g, hy060g, hy070g, 
          hy080g, hy090g, hy110g, hy120g, hy130g, hy140g, hx040, hx050) %>%
   collect(n = Inf)
 
-silc.d <- tbl(pg, "c13d") %>%
-  filter(db010 == 2013 & db020 == 'BE') %>%
+silc.d <- tbl(pg, "c17d") %>%
+  filter(db020 == 'BE') %>%
   select(db010, db020, db030, db040, db090) %>%
   collect(n = Inf)
 
-silc.r <- tbl(pg, "c13r") %>% 
-  filter(rb010 == 2013 & rb020 == 'BE') %>%
+silc.r <- tbl(pg, "c17r") %>% 
+  filter(rb020 == 'BE') %>%
   select(rb010, rb020, rb030, rb050, rb080, rb090, rx030) %>%
   collect(n = Inf)
 
