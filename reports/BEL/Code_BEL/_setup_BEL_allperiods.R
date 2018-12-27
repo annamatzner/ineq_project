@@ -117,6 +117,9 @@ c15r <- tbl(pg, "c15r") %>% filter(rb020 == 'BE') %>%
 c16r <- tbl(pg, "c16r") %>% filter(rb020 == 'BE') %>% 
   select(rb010, rb020, rb030, rb050, rb080, rb090, rx030) %>% collect(n = Inf)
 
+c17r <- tbl(pg, "c17r") %>% filter(rb020 == 'BE') %>% 
+  select(rb010, rb020, rb030, rb050, rb080, rb090, rx030) %>% collect(n = Inf)
+
 cxxr <- bind_rows(c14r, c15r, c16r, c17r)
 silc.r <- full_join(silc.r, cxxr)
 
@@ -126,8 +129,8 @@ silc.p$car <- silc.p$py020g
 silc.p$car <- ifelse(silc.p$pb010 > 2006, silc.p$py021g, silc.p$car)
 
 # Rename rb030, pb030 to personal_id
-silc.r <- silc.r %>% rename(personal_id = paste0(rb030, rb010))
-silc.p <- silc.p %>% rename(personal_id = paste0(pb030, pb010))
+silc.r <- silc.r %>% mutate(personal_id = paste0(rb030, rb010))
+silc.p <- silc.p %>% mutate(personal_id = paste0(pb030, pb010))
 
 # merge silc.r and silc.p
 silc.rp <- left_join(silc.r, silc.p)
@@ -139,18 +142,19 @@ silc.rp <- silc.rp %>%
          id_h = paste0(rx030, rb010)) 
 
 # Create unique IDs for merging, merge country and household ID h,d
-
 silc.h <- silc.h %>% mutate(id_h = paste0(hb030, hb010))
-
 silc.d <- silc.d %>% mutate(id_h = paste0(db030, db010))
 
 # Merge silc.rp and silc.h
-silc.rph <- left_join(silc.rp, silc.h, by = c("id_h", "rb010" = "hb010", "rb020" = "hb020", "rx030" = "hb030"))
+silc.rph <- left_join(silc.rp, silc.h, by = c("id_h", "rb010" = "hb010", 
+                                              "rb020" = "hb020", 
+                                              "rx030" = "hb030"))
 
 # Replace NA's in silc.rph by 0
 silc.rph[is.na(silc.rph)] <- 0
-# Since some NA's (gender, around 40 observations) cannot be replaced - omit!
+# Since some NA's (gender, 3 observations) cannot be replaced - omit!
 silc.rph <- na.omit(silc.rph)
+
 
 # P1 EUROSTAT -----------------------------------------------------------------
 
@@ -195,7 +199,8 @@ silc.rph <- silc.rph %>%
                           (sum_pincome3 + hy050g + hy060g + hy070g + hy080g 
                            - hy120g - hy130g - hy140g) / hx050))
 
-silc.rph$hy020/silc.rph$hx050
+silc.rph$hy020/silc.rph$hx050 
+
 
 # P2 WID.WORLD ----------------------------------------------------------------
 
@@ -219,6 +224,7 @@ silc.rph <- silc.rph %>%
   mutate(income_p2_3 = income_p2_2 + py110g + py120g + py130g + py140g + 
            (hy050g + hy060g + hy070g + hy080g - hy120g - hy130g - hy140g)/n)
 
+
 # Subsetting ------------------------------------------------------------------
 
 # To get useful results we subset to income >= 0
@@ -232,4 +238,6 @@ silc.pos.p2 <- silc.rph %>% filter(income_p2_1 > 0, income_p2_2 > 0,
 
 # Fin -------------------------------------------------------------------------
 
-
+# saveRDS(silc.rph,file="belgium_allperiods.RData")
+# In order to read the data use
+# readRDS("belgium_allperiods.RData")
