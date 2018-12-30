@@ -17,7 +17,6 @@ silc.p <- tbl(pg, "c17p") %>%
          pl111, py010g, py050g, py021g, py080g, py090g, py100g, py110g, py120g, 
          py130g, py140g) %>%
   collect(n = Inf)
-# pb210_num, pb220a_num, pl111_num im 2016 Datensatz verfügbar
 
 silc.h <- tbl(pg, "c17h") %>%
   filter(hb020 == 'BE') %>%
@@ -59,7 +58,7 @@ silc.rph <- left_join(silc.rp, silc.h)
 silc.rph <- left_join(silc.rph, silc.d)
 
 # Replace NA's in silc.rph by 0
-silc.rph[is.na(silc.rphd)] <- 0
+silc.rph[is.na(silc.rph)] <- 0
 
 
 # P1 EUROSTAT -----------------------------------------------------------------
@@ -125,37 +124,36 @@ silc <- silc.rph %>% filter(income_p1_1 > 0, income_p1_2 > 0,
 # experience
 silc <- silc %>% rename(experience = pl200)
 
+# filter only observations with income and working time 
+silc <- silc %>% filter(pl060>0 & (pl073+pl074)>0)
+# 4619 observations
+
 # calculate hourly wage
 silc <- silc %>% mutate(hwages = income_p1_1 / 
                           ((pl060 + pl100)*52/12*pmin(12,(pl073 + pl074))))
 
-# filter only observations with income and working time 
-# filter status of employment = employee
-silc <- silc %>% filter(pl060>0 & (pl073+pl074)>0 & pl040 == 3)
-# ~ 5000 instead of ~13000 observations: is this a problem?
-# I guess this is OK since all individuals were included before.
 
 # Recode Education Variable
-silc$pe040 <- as.factor(silc$pe040)
-levels(silc$pe040) <- c("1","1","1","2","3","4")
-silc <- silc %>% rename(edu = pe040)
+silc$edu <- as.factor(silc$pe040)
+levels(silc$edu) <- c("1","1","2","3","3","3","3","4")
+
 
 # Managerial Position Dummy
 # 0 wenn keine leitende Position, 1 wenn in einer leitenden Position
 silc$pl150[silc$pl150 == 2] <- 0
-silc$pl150<-as.numeric(silc$pl150)
+silc$pl150 <- as.numeric(silc$pl150)
 silc <- silc %>% rename(position = pl150)
 
 # Origin of Birth
 # How many observations where country of birth = Belgium, EU, other
-table<-as.data.frame(table(silc$pb210))
-# EU: 353, BEL: 3978, OTH: 370
+table <- as.data.frame(table(silc$pb210))
+# EU: 378, BEL: 3787, OTH: 408
 
 # We treat EU + Belgium as one group
 silc$pb210[silc$pb210 == "LOC"] <- 0
 silc$pb210[silc$pb210 == "EU"] <- 0
 silc$pb210[silc$pb210 == "OTH"] <- 1
-silc$pb210 <- as.numeric(silc$pb210)
+silc$pb210 <- as.factor(silc$pb210)
 silc <- na.omit(silc)
 silc <- silc %>% rename(migration = pb210)
 
@@ -170,7 +168,12 @@ silc$ph010[silc$ph010 == 3] <- 0
 silc$ph010[silc$ph010 == 4] <- 1
 silc$ph010[silc$ph010 == 5] <- 1
 silc <- silc %>% rename(health = ph010)
+# 0 = good health, 1 = bad health
 
+# Recent job change Dummy
+silc$pl160[silc$pl160 == 2] <- 0
+silc$pl160 <- as.factor(silc$pl160)
+silc <- silc %>% rename(jobchange = pl160)
 
 # Weights
 silc <- silc %>% rename(weights = pb040)
@@ -178,7 +181,7 @@ silc <- silc %>% rename(weights = pb040)
 # New Data Frame: only variables we need --------------------------------------
 
 data <- silc %>% select(personal_id, migration, edu, experience, age, gender, 
-                        hwages, position, weights, urb, health)
+                        hwages, position, weights, urb, health, jobchange)
 
 
 # Fin -------------------------------------------------------------------------
