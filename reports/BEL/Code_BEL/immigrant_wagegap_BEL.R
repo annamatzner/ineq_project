@@ -2,7 +2,7 @@
 
 # Belgium - Immigrant Wage Gap
 # Descriptive Statistics & Oaxaca Blinder Decomposition
-# time frame: 20
+# time frame: 2017
 
 # -----------------------------------------------------------------------------
 
@@ -25,33 +25,25 @@ migrants <- data %>% filter(migration == 1)
 
 # Plot Education for both groups
 
-p_eu <- ggplot(eu,aes(x = eu$edu, fill = eu$edu)) + geom_bar() + 
-  labs(x = "Bildungsstufen", y = "", 
+p_eu <- ggplot(eu, aes(x="", y=eu$edu, fill=eu$edu))+
+  geom_bar(width = 1, stat = "identity") + 
+  labs(x = "", y = "", 
        title = "Übersicht Bildungsstufen von EU-BürgerInnen in Belgien") + 
-  theme_light() + scale_fill_discrete(name = "Bildungsstufen", 
-       labels = c("Maximal Primarabschluss","Untere Sekundarstufe", 
-      "Höhere Sekundarstufe und nicht tertiäre höhere Abschlüsse", 
-      "Tertiärer Abschluss"))
+   scale_fill_discrete(name = "Bildungsstufen", 
+   labels = c("Maximal Primarabschluss","Untere Sekundarstufe", 
+   "Höhere Sekundarstufe und nicht tertiäre höhere Abschlüsse", 
+   "Tertiärer Abschluss"))
 p_eu
-p_mig <- ggplot(migrants,aes(x = migrants$edu, fill = migrants$edu)) + 
-  geom_bar() + labs(x = "Bildungsstufen", y = "", 
-  title = "Übersicht Bildungsstufen von Migranten/Migrantinnen in Belgien") + 
-  theme_light() + scale_fill_discrete(name = "Bildungsstufen", 
-  labels = c("Maximal Primarabschluss","Untere Sekundarstufe", 
-  "Höhere Sekundarstufe und nicht tertiäre höhere Abschlüsse", 
-  "Tertiärer Abschluss"))
+
+p_mig <- ggplot(migrants, aes(x = "", y = edu, fill = edu))+
+  geom_bar(width = 1, stat = "identity") + 
+  labs(x = "", y = "", 
+       title = "Übersicht Bildungsstufen von MigrantInnen in Belgien") + 
+  scale_fill_discrete(name = "Bildungsstufen", 
+   labels = c("Maximal Primarabschluss","Untere Sekundarstufe", 
+   "Höhere Sekundarstufe und nicht tertiäre höhere Abschlüsse", 
+    "Tertiärer Abschluss"))
 p_mig
-
-# to get rid of Ausreißer of hwages: new subset
-#wages <- data %>% filter(hwages < 150) 
-#wages$migration <- as.factor(wages$migration)
-
-#p_wages <- ggplot(wages, aes(x = hwages, fill = migration, color = migration)) +
-#  geom_histogram(fill="white", alpha=0.5, position="identity") + 
- # labs(x = "Löhne und Einkommen", y = "", 
-   #    title = "Löhne und Einkommen in Belgien") + theme_minimal() +
-  #scale_fill_discrete(name = "", labels = c("EU - BürgerInnen", "MigrantInnen")) 
-#p_wages
 
 # Basic Analysis of Income Data -----------------------------------------------
 
@@ -70,12 +62,12 @@ data.svy.mig <- svydesign(ids =  ~ id_h,
 # Mean
 mean_eu <- svymean(~hwages, data.svy.eu)
 mean_mig <- svymean(~hwages, data.svy.mig)
-mean_gap <- round((1 - mean_mig / mean_eu) * 100, digits = 2) 
+mean_gap <- (mean_eu-mean_mig)/mean_eu
 
 # Median
 median_eu <- svyquantile(~hwages, data.svy.eu, quantile=c(0.5))
 median_mig <- svyquantile(~hwages, data.svy.mig, quantile=c(0.5))
-median_gap <- round((1 - median_mig / median_eu) * 100, digits = 2) 
+median_gap <- (median_eu-median_mig)/median_eu
 
 # creating a data frame with values for means and medians
 df <- data.frame(names=c("Mean income EU", "Mean income Migrants", 
@@ -91,7 +83,7 @@ class(df$values) # numeric
 p <- ggplot(data=df, aes(x=factor(names,levels=names) , y=values, fill=names)) +
   geom_bar(position="dodge",stat="identity") + labs(x="", y="Hourly wages", 
   title="Mean and median income of EU citizen and migrants in Belgium") + 
-  scale_fill_manual(values=c("blue","orange", "blue", "orange")) + 
+  scale_fill_manual(values=alpha(c("blue","red", "blue", "red"), .5)) + 
   guides(fill="none")
 p
 
@@ -102,40 +94,32 @@ p
 
 # OLS whole sample
 ols_0 <- (lm(log(hwages) ~ gender + I(experience) + I(experience^2) + edu + 
-         migration + position + urb + health + jobchange, data = data, weights = weights))
+         migration + position + urb + health + jobchange, data = data, 
+         weights = weights))
 summary(ols_0)
 
 ols_1 <- (lm(log(hwages) ~ gender + I(age) + I(age^2) + edu + 
-          migration + position + urb + health + jobchange, data = data, weights = weights))
-summary(ols_1)
+          migration + position + urb + health + jobchange, data = data, 
+          weights = weights))
+summary(ols_1) # better
 
+# health, urbanisation insignificant 
 
-# health, urbanisation, position, jobchange insignificant
-
-ols_2 <- (lm(log(hwages) ~ gender + I(experience) + I(experience^2) + edu + 
-             migration, data = data, weights = weights))
+ols_2 <- (lm(log(hwages) ~ gender + I(age) + I(age^2) + edu + 
+             migration + position + jobchange, data = data, weights = weights))
 summary(ols_2)
-
-ols_3 <- (lm(log(hwages) ~ gender + I(age) + I(age^2) + edu + migration + 
-               position, data = data, weights = weights))
-summary(ols_3)
 
 
 # -----------------------------------------------------------------------------
 
-# Generate Subsets for EU borns and migrants
-
-eu <- data %>% filter(migration == 0) # 4331 observations
-migrants <- data %>% filter(migration == 1) # 370 observations
-
 # OLS for each sample ---------------------------------------------------------
 
 ols_eu <- (lm(log(hwages) ~ gender + I(experience) + I(experience^2) + edu 
-                , data = data, weights = weights))
+                , data = eu, weights = weights))
 summary(ols_eu)
 
 ols_mig <- (lm(log(hwages) ~ gender + I(experience) + I(experience^2) + edu
-               , data = data, weights = weights))
+               , data = migrants, weights = weights))
 summary(ols_mig)
 
 
