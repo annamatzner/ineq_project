@@ -12,6 +12,8 @@ library(dplyr)
 library(survey)
 library(convey)
 library(Hmisc)
+library(xtable)
+library(stargazer)
 
 # -----------------------------------------------------------------------------
 
@@ -82,7 +84,7 @@ class(df$values) # numeric
 # Basic barplot
 p <- ggplot(data=df, aes(x=factor(names,levels=names) , y=values, fill=names)) +
   geom_bar(position="dodge",stat="identity") + labs(x="", y="Hourly wages", 
-  title="Mean and median income of EU citizen and migrants in Belgium") + 
+  title="") + 
   scale_fill_manual(values=alpha(c("blue","red", "blue", "red"), .5)) + 
   guides(fill="none")
 p
@@ -109,6 +111,9 @@ ols_2 <- (lm(log(hwages) ~ gender + I(age) + I(age^2) + edu +
              migration + position + jobchange, data = data, weights = weights))
 summary(ols_2)
 
+# Stargazer Output für Latex
+stargazer(ols_2, title="Results", align=TRUE, dep.var.label=("Log- Bruttostundenlohn"), covariate.labels=c("Gender", "Alter", "Alter^2", "Untere Sekundarstufe", "Höhere Sekundarstufe/nicht tertiäre höhere Abschlüsse", "Tertiärer Abschluss", "Migration", "Position", "Job Wechsel"), omit.stat=c("LL","ser","f"),no.space = TRUE)
+
 
 # -----------------------------------------------------------------------------
 
@@ -131,8 +136,15 @@ summary(oaxaca)
 oaxaca$y # shows the means and difference in means, leaving the difference of
 # ... to be explained by the Oaxaca Blinder decomposition
 oaxaca$twofold$overall
+
+oaxacadf <- data.frame(oaxaca$twofold$overall)
+oaxacadf <- oaxacadf[,1:5]
+xtable(oaxacadf) # Latex Output
+
 plot_oaxaca <- plot(oaxaca, decomposition = "twofold", group.weight = -1)
 plot_oaxaca
+
+
 
 # Still have to decide which group weight we use but in general around 
 # 1.0 - 1.3 explained, rest is unexplained ( R package documentation)

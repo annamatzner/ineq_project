@@ -83,6 +83,7 @@ levels(silc$edu) <- c("1","1","2","3","3","3","3","4")
 silc$pl150[silc$pl150 == 2] <- 0
 silc$pl150 <- as.numeric(silc$pl150)
 silc <- silc %>% rename(position = pl150)
+# 1: ja leitende Funktion, 0: keine leitende Funktion
 
 # Origin of Birth
 # How many observations where country of birth = Belgium, EU, other
@@ -114,6 +115,7 @@ silc <- silc %>% rename(health = ph010)
 silc$pl160[silc$pl160 == 2] <- 0
 silc$pl160 <- as.factor(silc$pl160)
 silc <- silc %>% rename(jobchange = pl160)
+# job change: 1, no job change: 0
 
 # Weights
 silc <- silc %>% rename(weights = pb040)
