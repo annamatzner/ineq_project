@@ -47,6 +47,14 @@ p_mig <- ggplot(migrants, aes(x = "", y = edu, fill = edu))+
     "Tertiärer Abschluss"))
 p_mig
 
+# Income Density Plots
+eu_limited <- eu %>% filter(py010g <= 260000) # to make scales comparable
+income_density_eu <- ggplot(eu_limited) + geom_density(aes(x=py010g)) + 
+  labs(x = "Brutto-Jahreseinkommen EU-BürgerInnen", y = "Dichte", title = "")
+
+income_density_mig <- ggplot(migrants) + geom_density(aes(x=py010g)) + 
+  labs(x = "Brutto-Jahreseinkommen MigrantInnen", y = "Dichte", title = "")
+
 # Basic Analysis of Income Data -----------------------------------------------
 
 # Creating Survey Objects -----------------------------------------------------
@@ -119,18 +127,18 @@ stargazer(ols_2, title="Results", align=TRUE, dep.var.label=("Log- Bruttostunden
 
 # OLS for each sample ---------------------------------------------------------
 
-ols_eu <- (lm(log(hwages) ~ gender + I(experience) + I(experience^2) + edu 
+ols_eu <- (lm(log(hwages) ~ gender + I(age) + I(age^2) + edu 
                 , data = eu, weights = weights))
 summary(ols_eu)
 
-ols_mig <- (lm(log(hwages) ~ gender + I(experience) + I(experience^2) + edu
+ols_mig <- (lm(log(hwages) ~ gender + I(age) + I(age^2) + edu
                , data = migrants, weights = weights))
 summary(ols_mig)
 
 
 # Oaxaca Blinder Decomposition ------------------------------------------------
 
-oaxaca <- oaxaca(hwages ~ gender + I(experience) + I(experience^2) + edu 
+oaxaca <- oaxaca(hwages ~ gender + I(age) + I(age^2) + edu 
                     | migration, data = data)
 summary(oaxaca)
 oaxaca$y # shows the means and difference in means, leaving the difference of
@@ -143,7 +151,6 @@ xtable(oaxacadf) # Latex Output
 
 plot_oaxaca <- plot(oaxaca, decomposition = "twofold", group.weight = -1)
 plot_oaxaca
-
 
 
 # Still have to decide which group weight we use but in general around 

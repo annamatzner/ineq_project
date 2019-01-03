@@ -124,7 +124,7 @@ silc <- silc %>% rename(weights = pb040)
 
 data <- silc %>% select(id_h, personal_id, migration, edu, experience, age, 
                         gender, hwages, position, weights, urb, health, 
-                        jobchange)
+                        jobchange, py010g)
 
 
 # Fin -------------------------------------------------------------------------
