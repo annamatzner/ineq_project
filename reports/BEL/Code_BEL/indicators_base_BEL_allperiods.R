@@ -8,12 +8,16 @@ library(dplyr)
 library(survey)
 library(convey)
 library(eurostat)
+library(ggplot2)
+library(xtable)
 
 # -----------------------------------------------------------------------------
 
 inflation <- get_eurostat("prc_hicp_aind", time_format = "raw")
 inflation <- inflation %>% filter(unit == "INX_A_AVG", coicop == "CP00", 
-                                  geo == "BE", time %in% 2004:2017)
+                                  geo == "BE", time %in% 2004:2017) %>% 
+  select(time, values) %>% arrange(time)
+
 
 # -----------------------------------------------------------------------------
 
@@ -47,10 +51,12 @@ silc.p2.svy <- svydesign(ids =  ~ id_h,
 
 # Mean
 mean_p1_1 <- svyby(~income_p1_1, by=~rb010, design=silc.p1.svy, FUN=svymean)
+mean_p1_1$mean <- mean_p1_1$income_p1_1/inflation$values*100
 
 # Median
 median_p1_1 <- svyby(~income_p1_1, by=~rb010, design=silc.p1.svy, 
                      FUN=svyquantile, c(0.5), ci=TRUE)
+median_p1_1$median <- median_p1_1$income_p1_1/inflation$values*100
 
 # Gini
 gini_p1_1_all <- svyby(~income_p1_1, by=~rb010, design=silc.p1.svy, FUN=svygini)
@@ -70,24 +76,26 @@ years_top10_p1_1 <- topnum_p1_1 / topden_p1_1
 
 # Table preparation -----------------------------------------------------------
 
-table_p1_1 <- data.frame(mean_p1_1$rb010, mean_p1_1$income_p1_1, 
-                 median_p1_1$income_p1_1, gini_p1_1_all$income_p1_1,
+table_p1_1 <- data.frame(mean_p1_1$rb010, mean_p1_1$mean, 
+                 median_p1_1$median, gini_p1_1_all$income_p1_1,
                  p80p20_p1_1$income_p1_1, years_top10_p1_1$income_p1_1)
 
 colnames(table_p1_1)<- c("Jahr", "Mittelwert" ,"Median", "Gini", "P80/P20", 
                          "Top10%")
 
 table_p1_1
-
+xtable(table_p1_1)
 
 # Pre-tax national income -----------------------------------------------------
 
 # Mean
 mean_p1_2 <- svyby(~income_p1_2, by=~rb010, design=silc.p1.svy, FUN=svymean)
+mean_p1_2$mean <- mean_p1_2$income_p1_2/inflation$values*100
 
 # Median
 median_p1_2 <- svyby(~income_p1_2, by=~rb010, design=silc.p1.svy, 
                      FUN=svyquantile, c(0.5), ci=TRUE)
+median_p1_2$median <- median_p1_2$income_p1_2/inflation$values*100
 
 # Gini
 gini_p1_2_all <- svyby(~income_p1_2, by=~rb010, design=silc.p1.svy, FUN=svygini)
@@ -107,23 +115,27 @@ years_top10_p1_2 <- topnum_p1_2 / topden_p1_2
 
 # Table preparation -----------------------------------------------------------
 
-table_p1_2 <- data.frame(mean_p1_2$rb010, mean_p1_2$income_p1_2, 
-                         median_p1_2$income_p1_2, gini_p1_2_all$income_p1_2,
+table_p1_2 <- data.frame(mean_p1_2$rb010, mean_p1_2$mean, 
+                         median_p1_2$median, gini_p1_2_all$income_p1_2,
                          p80p20_p1_2$income_p1_2, years_top10_p1_2$income_p1_2)
 
 colnames(table_p1_2)<- c("Jahr", "Mittelwert" ,"Median", "Gini", "P80/P20", 
                          "Top10%")
 
 table_p1_2
+xtable(table_p1_2)
 
 
 # Post-tax disposable income --------------------------------------------------
 
 # Mean
 mean_p1_3 <- svyby(~income_p1_3, by=~rb010, design=silc.p1.svy, FUN=svymean)
+mean_p1_3$mean <- mean_p1_3$income_p1_3/inflation$values*100
 
 # Median
-median_p1_3 <- svyby(~income_p1_3, by=~rb010, design=silc.p1.svy, FUN=svyquantile, c(0.5), ci=TRUE)
+median_p1_3 <- svyby(~income_p1_3, by=~rb010, design=silc.p1.svy, 
+                     FUN=svyquantile, c(0.5), ci=TRUE)
+median_p1_3$median <- median_p1_3$income_p1_3/inflation$values*100
 
 # Gini
 gini_p1_3_all <- svyby(~income_p1_3, by=~rb010, design=silc.p1.svy, FUN=svygini)
@@ -143,14 +155,15 @@ years_top10_p1_3 <- topnum_p1_3 / topden_p1_3
 
 # Table preparation -----------------------------------------------------------
 
-table_p1_3 <- data.frame(mean_p1_3$rb010, mean_p1_3$income_p1_3, 
-                         median_p1_3$income_p1_3, gini_p1_3_all$income_p1_3,
+table_p1_3 <- data.frame(mean_p1_3$rb010, mean_p1_3$mean, 
+                         median_p1_3$median, gini_p1_3_all$income_p1_3,
                          p80p20_p1_3$income_p1_3, years_top10_p1_3$income_p1_3)
 
 colnames(table_p1_3)<- c("Jahr", "Mittelwert" ,"Median", "Gini", "P80/P20", 
                          "Top10%")
 
 table_p1_3
+xtable(table_p1_3)
 
 # -----------------------------------------------------------------------------
 
@@ -160,10 +173,12 @@ table_p1_3
 
 # Mean
 mean_p2_1 <- svyby(~income_p2_1, by=~rb010, design=silc.p2.svy, FUN=svymean)
+mean_p2_1$mean <- mean_p2_1$income_p2_1/inflation$values*100
 
 # Median
 median_p2_1 <- svyby(~income_p2_1, by=~rb010, design=silc.p2.svy, 
                      FUN=svyquantile, c(0.5), ci=TRUE)
+median_p2_1$median <- median_p2_1$income_p2_1/inflation$values*100
 
 # Gini
 gini_p2_1_all <- svyby(~income_p2_1, by=~rb010, design=silc.p2.svy, FUN=svygini)
@@ -183,22 +198,26 @@ years_top10_p2_1 <- topnum_p2_1 / topden_p2_1
 
 # Table preparation -----------------------------------------------------------
 
-table_p2_1 <- data.frame(mean_p2_1$rb010, mean_p2_1$income_p2_1, 
-                         median_p2_1$income_p2_1, gini_p2_1_all$income_p2_1,
+table_p2_1 <- data.frame(mean_p2_1$rb010, mean_p2_1$mean, 
+                         median_p2_1$median, gini_p2_1_all$income_p2_1,
                          p80p20_p2_1$income_p2_1, years_top10_p2_1$income_p2_1)
 
 colnames(table_p2_1)<- c("Jahr", "Mittelwert" ,"Median", "Gini", "P80/P20", 
                          "Top10%")
 
 table_p2_1
+xtable(table_p2_1)
 
 # Pre-tax national income -----------------------------------------------------
 
 # Mean
 mean_p2_2 <- svyby(~income_p2_2, by=~rb010, design=silc.p2.svy, FUN=svymean)
+mean_p2_2$mean <- mean_p2_2$income_p2_2/inflation$values*100
 
 # Median
-median_p2_2 <- svyby(~income_p2_2, by=~rb010, design=silc.p2.svy, FUN=svyquantile, c(0.5), ci=TRUE)
+median_p2_2 <- svyby(~income_p2_2, by=~rb010, design=silc.p2.svy, 
+                     FUN=svyquantile, c(0.5), ci=TRUE)
+median_p2_2$median <- median_p2_2$income_p2_2/inflation$values*100
 
 # Gini
 gini_p2_2_all <- svyby(~income_p2_2, by=~rb010, design=silc.p2.svy, FUN=svygini)
@@ -218,23 +237,26 @@ years_top10_p2_2 <- topnum_p2_2 / topden_p2_2
 
 # Table preparation -----------------------------------------------------------
 
-table_p2_2 <- data.frame(mean_p2_2$rb010, mean_p2_2$income_p2_2, 
-                         median_p2_2$income_p2_2, gini_p2_2_all$income_p2_2,
+table_p2_2 <- data.frame(mean_p2_2$rb010, mean_p2_2$mean, 
+                         median_p2_2$median, gini_p2_2_all$income_p2_2,
                          p80p20_p2_2$income_p2_2, years_top10_p2_2$income_p2_2)
 
 colnames(table_p2_2)<- c("Jahr", "Mittelwert" ,"Median", "Gini", "P80/P20", 
                          "Top10%")
 
 table_p2_2
+xtable(table_p2_2)
 
 # Post-tax disposable income -------------------------------------------------
 
 # Mean
 mean_p2_3 <- svyby(~income_p2_3, by=~rb010, design=silc.p2.svy, FUN=svymean)
+mean_p2_3$mean <- mean_p2_3$income_p2_3/inflation$values*100
 
 # Median
 median_p2_3 <- svyby(~income_p2_3, by=~rb010, design=silc.p2.svy, 
                      FUN=svyquantile, c(0.5), ci=TRUE)
+median_p2_3$median <- median_p2_3$income_p2_3/inflation$values*100
 
 # Gini
 gini_p2_3_all <- svyby(~income_p2_3, by=~rb010, design=silc.p2.svy, FUN=svygini)
@@ -254,11 +276,122 @@ years_top10_p2_3 <- topnum_p2_3 / topden_p2_3
 
 # Table preparation -----------------------------------------------------------
 
-table_p2_3 <- data.frame(mean_p2_3$rb010, mean_p2_3$income_p2_3, 
-                         median_p2_3$income_p2_3, gini_p2_3_all$income_p2_3,
+table_p2_3 <- data.frame(mean_p2_3$rb010, mean_p2_3$mean, 
+                         median_p2_3$median, gini_p2_3_all$income_p2_3,
                          p80p20_p2_3$income_p2_3, years_top10_p2_3$income_p2_3)
 
 colnames(table_p2_3)<- c("Jahr", "Mittelwert" ,"Median", "Gini", "P80/P20", 
                          "Top10%")
 
 table_p2_3
+xtable(table_p2_3)
+
+
+# Plots -----------------------------------------------------------------------
+
+# MEAN -----------------------------------------------------------------------
+
+# Mittelwert vor und nach Steuern P1 Equal Sharing
+mean_plot_p1 <- ggplot() +
+  geom_line(mapping = aes(y = table_p1_1$Mittelwert, x = table_p1_1$Jahr,
+                          color = "Mittelwert vor Steuern (factor)"),
+            size = 1 ) +
+  geom_line(mapping = aes(y = table_p1_3$Mittelwert,x = table_p1_3$Jahr,
+                          color = "Mittelwert nach Steuern"), size = 1) +
+  geom_line(mapping = aes(y = table_p1_2$Mittelwert,x = table_p1_2$Jahr,
+                          color = "Mittelwert vor Steuern (national)"), 
+            size = 1) + scale_color_manual(values = 
+   c('Mittelwert vor Steuern (factor)' = 'darkred', 
+     'Mittelwert nach Steuern' = 'darkblue', 
+     'Mittelwert vor Steuern (national)' = 'pink')) +
+  labs(color = '', x = "Jahr", y = "Einkommen in Euro", 
+       title = "Mittleres Einkommen vor und nach Steuern",
+       subtitle = "Equal Sharing der Haushaltsmitglieder")
+mean_plot_p1
+
+# Mittelwert vor und nach Steuern P2 Partial Sharing
+mean_plot_p2 <- ggplot() +
+  geom_line(mapping = aes(y = table_p2_1$Mittelwert,x = table_p2_1$Jahr,
+                          color = "Mittelwert vor Steuern (factor)"),
+            size = 1 ) +
+  geom_line(mapping = aes(y = table_p2_3$Mittelwert,x = table_p2_3$Jahr,
+                          color = "Mittelwert nach Steuern"), size = 1) +
+  geom_line(mapping = aes(y = table_p2_2$Mittelwert,x = table_p2_2$Jahr,
+                          color = "Mittelwert vor Steuern (national)"), 
+            size = 1) +
+  scale_color_manual(values = c('Mittelwert vor Steuern (factor)' = 'darkred',
+                                'Mittelwert nach Steuern' = 'darkblue', 
+                                'Mittelwert vor Steuern (national)' = 'pink')) +
+  labs(color = '', x = "Jahr", y = "Einkommen in Euro", 
+       title = "Mittleres Einkommen vor und nach Steuern",
+       subtitle = "Partial Sharing der Haushaltsmitglieder")
+mean_plot_p2
+
+# GINI -----------------------------------------------------------------------
+
+# Gini vor und nach Steuern P1
+gini_plot_p1 <- ggplot() +
+  geom_line(mapping = aes(y = table_p1_1$Gini,x = table_p1_1$Jahr,
+                          color = "Gini vor Steuern (factor)"), size = 1 ) +
+  geom_line(mapping = aes(y = table_p1_2$Gini,x = table_p1_2$Jahr,
+                          color = "Gini vor Steuern (national)"), size = 1) +
+  geom_line(mapping = aes(y = table_p1_3$Gini,x = table_p1_3$Jahr,
+                          color = "Gini nach Steuern"), size = 1) +
+  scale_color_manual(values = c('Gini vor Steuern (factor)' = 'darkred',
+                                'Gini nach Steuern' = 'darkblue', 
+                                'Gini vor Steuern (national)' = 'pink'))+
+  labs(color = '', x = "Jahr", y = "Gini", 
+       title = "Gini Koeffizient vor und nach Steuern",
+       subtitle = "Equal Sharing der Haushaltsmitglieder")
+gini_plot_p1
+
+# Gini vor und nach Steuern P2
+gini_plot_p2 <- ggplot() +
+  geom_line(mapping = aes(y = table_p2_1$Gini,x = table_p2_1$Jahr,
+                          color = "Gini vor Steuern (factor)"), size = 1 ) +
+  geom_line(mapping = aes(y = table_p2_2$Gini,x = table_p2_2$Jahr,
+                          color = "Gini vor Steuern (national)"), size = 1) +
+  geom_line(mapping = aes(y = table_p2_3$Gini,x = table_p2_3$Jahr,
+                          color = "Gini nach Steuern"), size = 1) +
+  scale_color_manual(values = c('Gini vor Steuern (factor)' = 'darkred', 
+                                'Gini nach Steuern' = 'darkblue',
+                                'Gini vor Steuern (national)' = 'pink'))+
+  labs(color = '', x = "Jahr", y = "Gini", 
+       title = "Gini Koeffizient vor und nach Steuern",
+       subtitle = "Partial Sharing der Haushaltsmitglieder")
+gini_plot_p2
+
+# TOP10% ----------------------------------------------------------------------
+
+# Gini vor und nach Steuern P1
+top10_plot_p1 <- ggplot() +
+  geom_line(mapping = aes(y = table_p1_1$`Top10%`,x = table_p1_1$Jahr,
+                          color = "Top10% vor Steuern (factor)"), size = 1 ) +
+  geom_line(mapping = aes(y = table_p1_2$`Top10%`,x = table_p1_2$Jahr,
+                          color = "Top10% vor Steuern (national)"), size = 1) +
+  geom_line(mapping = aes(y = table_p1_3$`Top10%`,x = table_p1_3$Jahr,
+                          color = "Top10% nach Steuern"), size = 1) +
+  scale_color_manual(values = c('Top10% vor Steuern (factor)' = 'darkred',
+                                'Top10% nach Steuern' = 'darkblue', 
+                                'Top10% vor Steuern (national)' = 'pink'))+
+  labs(color = '', x = "Jahr", y = "Anteil der Top 10%", 
+       title = "Anteil am Einkommen der Top 10% vor und nach Steuern",
+       subtitle = "Equal Sharing der Haushaltsmitglieder")
+top10_plot_p1
+
+# Gini vor und nach Steuern P1
+top10_plot_p2 <- ggplot() +
+  geom_line(mapping = aes(y = table_p2_1$`Top10%`,x = table_p2_1$Jahr,
+                          color = "Top10% vor Steuern (factor)"), size = 1 ) +
+  geom_line(mapping = aes(y = table_p2_2$`Top10%`,x = table_p2_2$Jahr,
+                          color = "Top10% vor Steuern (national)"), size = 1) +
+  geom_line(mapping = aes(y = table_p2_3$`Top10%`,x = table_p2_3$Jahr,
+                          color = "Top10% nach Steuern"), size = 1) +
+  scale_color_manual(values = c('Top10% vor Steuern (factor)' = 'darkred',
+                                'Top10% nach Steuern' = 'darkblue', 
+                                'Top10% vor Steuern (national)' = 'pink'))+
+  labs(color = '', x = "Jahr", y = "Anteil der Top 10%", 
+       title = "Anteil am Einkommen der Top 10% vor und nach Steuern",
+       subtitle = "Partial Sharing der Haushaltsmitglieder")
+top10_plot_p2
+
