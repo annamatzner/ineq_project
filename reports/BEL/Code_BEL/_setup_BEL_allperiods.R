@@ -33,7 +33,7 @@ silc.r <- tbl(pg, "rr") %>%
   select(rb010, rb020, rb030, rb050, rb080, rb090, rx030) %>%
   collect(n = Inf)
 
-# Include py021g (company car) for all years ----------------------------------
+# Download car variable for 2007 - 2013  
 
 c07p <- tbl(pg, "c07p") %>% filter(pb020 == 'BE') %>% 
   select(pb010, pb030, py021g) %>% collect(n = Inf)
@@ -56,6 +56,12 @@ c12p <- tbl(pg, "c12p") %>% filter(pb020 == 'BE') %>%
 c13p <- tbl(pg, "c13p") %>% filter(pb020 == 'BE') %>% 
   select(pb010, pb030, py021g) %>% collect(n = Inf)
 
+cxxp <- bind_rows(c07p, c08p, c09p, c10p, c11p, c12p, c13p)
+
+silc.p <- left_join(silc.p, cxxp %>% select(py021g, pb010, pb030))
+
+# download data for 2014 - 2017 
+
 c14p <- tbl(pg, "c14p") %>% filter(pb020 == 'BE') %>% 
   select(pb010, pb030, py010g, py050g, py080g, py090g, py100g, py110g, 
          py120g, py130g, py140g, py021g) %>% collect(n = Inf)
@@ -72,10 +78,9 @@ c17p <- tbl(pg, "c17p") %>% filter(pb020 == 'BE') %>%
   select(pb010, pb030, py010g, py050g, py080g, py090g, py100g, py110g, 
          py120g, py130g, py140g, py021g) %>% collect(n = Inf)
 
-cxxp <- bind_rows(c07p, c08p, c09p, c10p, c11p, c12p, c13p, c14p, c15p, c16p, 
-                  c17p)
+cyyp <- bind_rows(c14p, c15p, c16p, c17p)
 
-silc.p <- full_join(silc.p, cxxp) 
+silc.p <- bind_rows(silc.p, cyyp) 
 
 
 # Download remaining data for 2014 - 2017
@@ -102,8 +107,8 @@ c17h <- tbl(pg, "c17h") %>% filter(hb020 == 'BE') %>%
          hy080g, hy090g, hy110g, hy120g, hy130g, hy140g, hx040, 
          hx050) %>% collect(n = Inf)
 
-cxxh <- bind_rows(c14h, c15h, c16h, c17h)
-silc.h <- full_join(silc.h, cxxh)
+cyyh <- bind_rows(c14h, c15h, c16h, c17h)
+silc.h <- bind_rows(silc.h, cyyh)
 
 
 # R Data
@@ -120,9 +125,11 @@ c16r <- tbl(pg, "c16r") %>% filter(rb020 == 'BE') %>%
 c17r <- tbl(pg, "c17r") %>% filter(rb020 == 'BE') %>% 
   select(rb010, rb020, rb030, rb050, rb080, rb090, rx030) %>% collect(n = Inf)
 
-cxxr <- bind_rows(c14r, c15r, c16r, c17r)
-silc.r <- full_join(silc.r, cxxr)
+cyyr <- bind_rows(c14r, c15r, c16r, c17r)
+silc.r <- bind_rows(silc.r, cyyr)
 
+
+# Merge Data Sets -------------------------------------------------------------
 
 # generate car variable 
 silc.p$car <- silc.p$py020g
@@ -133,7 +140,8 @@ silc.r <- silc.r %>% mutate(personal_id = paste0(rb030, rb010))
 silc.p <- silc.p %>% mutate(personal_id = paste0(pb030, pb010))
 
 # merge silc.r and silc.p
-silc.rp <- left_join(silc.r, silc.p)
+silc.rp <- left_join(silc.r, silc.p, by = c("personal_id", "rb010" = "pb010", 
+                                            "rb030" = "pb030"))
 
 # Create age, household ID, gender variables
 silc.rp <- silc.rp %>% 
@@ -161,7 +169,7 @@ silc.rph <- na.omit(silc.rph)
 # Pre-tax factor income (Canberra: primary income) ----------------------------
 
 # Sum up personal income
-silc.rph <- silc.rph %>% mutate(pincome1 = py010g + py050g + py080g + py021g)
+silc.rph <- silc.rph %>% mutate(pincome1 = py010g + py050g + py080g + car)
 
 # Sum up personal income of HH
 silc.rph <- silc.rph %>% group_by(id_h) %>%
@@ -169,7 +177,7 @@ silc.rph <- silc.rph %>% group_by(id_h) %>%
 
 # Equivalised HH income per person
 silc.rph <- silc.rph %>% 
-  mutate(income_p1_1 = ((sum_pincome1 + hy110g + hy040g + hy090g) / hx050))
+  mutate(income_p1_1 = (sum_pincome1 + hy110g + hy040g + hy090g) / hx050)
 
 # Pre-tax national income -----------------------------------------------------
 
@@ -182,7 +190,7 @@ silc.rph <- silc.rph %>% group_by(id_h) %>%
 
 # Equivalised HH income per person
 silc.rph <- silc.rph %>%
-  mutate(income_p1_2 = (income_p1_1 + (sum_pincome2 / hx050)))
+  mutate(income_p1_2 = income_p1_1 + (sum_pincome2 / hx050))
 
 # Post-tax national income ----------------------------------------------------
 
@@ -195,49 +203,40 @@ silc.rph <- silc.rph %>% group_by(id_h) %>%
 
 # Equivalised HH income per person
 silc.rph <- silc.rph %>%
-  mutate(income_p1_3 = (income_p1_2 + 
+  mutate(income_p1_3 = income_p1_2 + 
                           (sum_pincome3 + hy050g + hy060g + hy070g + hy080g 
-                           - hy120g - hy130g - hy140g) / hx050))
+                           - hy120g - hy130g - hy140g) / hx050)
 
-silc.rph$hy020/silc.rph$hx050 
-
+silc.rph$test <- silc.rph$hy020/silc.rph$hx050 
+summary(silc.rph$test)
+summary(silc.rph$income_p1_3)
 
 # P2 WID.WORLD ----------------------------------------------------------------
 
 # Generate variable ("n"): count of hh members age >= 20 
-silc.rph <- silc.rph %>% 
-  add_count(age >= 20, id_h)
+silc.rph2 <- silc.rph %>% filter(age >= 20) %>%
+  add_count(id_h)
 
 # Achtung: Variablen stimmen nur noch für Personen >= 20 Jahre. 
 
 # Pre-tax factor income (Canberra: primary income) ----------------------------
-silc.rph <- silc.rph %>%
-  mutate(income_p2_1 = py010g + py021g + py050g + py080g + 
+silc.rph2 <- silc.rph2 %>%
+  mutate(income_p2_1 = pincome1 + 
            (hy110g + hy040g + hy090g)/n)
 
 # Pre-tax national income -----------------------------------------------------
-silc.rph <- silc.rph %>%
-  mutate(income_p2_2 = income_p2_1 + py090g + py100g)
+silc.rph2 <- silc.rph2 %>%
+  mutate(income_p2_2 = income_p2_1 + pincome2)
 
 # Post-tax disposable income --------------------------------------------------
-silc.rph <- silc.rph %>%
-  mutate(income_p2_3 = income_p2_2 + py110g + py120g + py130g + py140g + 
+silc.rph2 <- silc.rph2 %>%
+  mutate(income_p2_3 = income_p2_2 + pincome3 + 
            (hy050g + hy060g + hy070g + hy080g - hy120g - hy130g - hy140g)/n)
 
 
-# Subsetting ------------------------------------------------------------------
-
-# To get useful results we subset to income >= 0
-silc.pos.p1 <- silc.rph %>% filter(income_p1_1 > 0, income_p1_2 > 0, 
-                                   income_p1_3 > 0)
-
-
-# Also subset to age >=20
-silc.pos.p2 <- silc.rph %>% filter(income_p2_1 > 0, income_p2_2 > 0, 
-                                   income_p2_3 > 0, age >= 20)   
-
 # Fin -------------------------------------------------------------------------
 
-# saveRDS(silc.rph,file="belgium_allperiods.RData")
+# saveRDS(silc.rph,file="belgium_allperiods_p1.RData")
+# saveRDS(silc.rph2, file="belgium_allperiods_p2.RData")
 # In order to read the data use
 # readRDS("belgium_allperiods.RData")
