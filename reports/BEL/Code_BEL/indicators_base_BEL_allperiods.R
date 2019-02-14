@@ -13,35 +13,27 @@ library(xtable)
 
 # -----------------------------------------------------------------------------
 
-#inflation <- get_eurostat("prc_hicp_aind", time_format = "raw")
-#inflation <- inflation %>% filter(unit == "INX_A_AVG", coicop == "CP00", 
+# inflation <- get_eurostat("prc_hicp_aind", time_format = "raw")
+# inflation <- inflation %>% filter(unit == "INX_A_AVG", coicop == "CP00", 
 #                                 geo == "BE", time %in% 2004:2017) %>% 
 #  select(time, values) %>% arrange(time)
 
 
 # -----------------------------------------------------------------------------
 
-data <- readRDS("belgium_allperiods.RData")
-
-# Data for P1
-silc.pos.p1 <- data 
-
-
-# Data for P2
-#silc.pos.p2 <- data %>% filter(income_p2_1 > 0, income_p2_2 > 0, 
-#                                   income_p2_3 > 0, age >= 20) 
-silc.pos.p2 <- data %>% filter(age >= 20) 
+silc.p1 <- readRDS("belgium_allperiods_p1.RData")
+silc.p2 <- readRDS("belgium_allperiods_p2.RData")
 
 
 # Creating Survey Objects -----------------------------------------------------
 
 silc.p1.svy <- svydesign(ids =  ~ id_h,
                          weights = ~rb050,
-                         data = silc.pos.p1) %>% convey_prep()
+                         data = silc.p1) %>% convey_prep()
 
 silc.p2.svy <- svydesign(ids =  ~ id_h,
                          weights = ~rb050,
-                         data = silc.pos.p2) %>% convey_prep()
+                         data = silc.p2) %>% convey_prep()
 
 # Indicators ------------------------------------------------------------------
 
@@ -50,120 +42,130 @@ silc.p2.svy <- svydesign(ids =  ~ id_h,
 # Pre-tax factor income (Canberra: primary income) ----------------------------
 
 # Mean
-mean_p1_1 <- svyby(~income_p1_1, by=~rb010, design=silc.p1.svy, FUN=svymean)
+mean_p1_1 <- svyby(~income_p1_1, ~rb010, silc.p1.svy, svymean)
 # mean_p1_1$mean <- mean_p1_1$income_p1_1/inflation$values*100
 
 # Median
-median_p1_1 <- svyby(~income_p1_1, by=~rb010, design=silc.p1.svy, 
-                     FUN=svyquantile, c(0.5), ci=TRUE)
+median_p1_1 <- svyby(~income_p1_1, ~rb010, silc.p1.svy, svyquantile, 
+                     quantiles = c(0.5), keep.var = FALSE)
 # median_p1_1$median <- median_p1_1$income_p1_1/inflation$values*100
 
 # Gini
-gini_p1_1_all <- svyby(~income_p1_1, by=~rb010, design=silc.p1.svy, FUN=svygini)
+gini_p1_1_all <- svyby(~income_p1_1, ~rb010, silc.p1.svy, svygini)
 
 # P80/P20
-p80p20_p1_1 <- svyby(~income_p1_1, by=~rb010, design=silc.p1.svy, FUN=svyqsr)
+p80p20_p1_1 <- svyby(~income_p1_1, ~rb010, silc.p1.svy, svyqsr)
 
 # Top 10% share
-top_p1_1 <- subset(silc.p1.svy, income_p1_1 >= as.numeric(
-  svyquantile(~income_p1_1, silc.p1.svy, quantile=c(0.9))))
 
-topnum_p1_1 <- svyby(~income_p1_1, ~rb010, top_p1_1, svytotal)
+share <- vector("numeric", length(2004:2017))
+j <- 1
 
-topden_p1_1 <- svyby(~income_p1_1, ~rb010, silc.p1.svy, svytotal)
+for(year in 2004:2017) {
+  svy_subset <- subset(silc.p1.svy, rb010 == year)
+  svy_top_10 <- subset(svy_subset, income_p1_1 >= as.numeric(svyquantile(~income_p1_1, svy_subset, quantile = c(0.9))))
+  share[j] <- svytotal(~income_p1_1, svy_top_10) / svytotal(~income_p1_1, svy_subset)
+  j <- j + 1
+}
 
-years_top10_p1_1 <- topnum_p1_1 / topden_p1_1
+years_top10_p1_1 <- data.frame(top_p1_1 = share)
 
 # Table preparation -----------------------------------------------------------
 
-table_p1_1 <- data.frame(mean_p1_1$rb010, mean_p1_1$income_p1_1, 
-                 median_p1_1$income_p1_1, gini_p1_1_all$income_p1_1,
-                 p80p20_p1_1$income_p1_1, years_top10_p1_1$income_p1_1)
+table_p1_1 <- data.frame(mean_p1_1$rb010, round(mean_p1_1$income_p1_1), 
+                 round(median_p1_1$statistic), round(gini_p1_1_all$income_p1_1*100,1),
+                 round(p80p20_p1_1$income_p1_1,1), round(years_top10_p1_1$top_p1_1*100,1))
 
 colnames(table_p1_1)<- c("Jahr", "Mittelwert" ,"Median", "Gini", "P80/P20", 
                          "Top10%")
 
 table_p1_1
-xtable(table_p1_1)
+print(xtable(table_p1_1), include.rownames = FALSE)
 
 # Pre-tax national income -----------------------------------------------------
 
 # Mean
-mean_p1_2 <- svyby(~income_p1_2, by=~rb010, design=silc.p1.svy, FUN=svymean)
+mean_p1_2 <- svyby(~income_p1_2, ~rb010, silc.p1.svy, svymean)
 # mean_p1_2$mean <- mean_p1_2$income_p1_2/inflation$values*100
 
 # Median
-median_p1_2 <- svyby(~income_p1_2, by=~rb010, design=silc.p1.svy, 
-                     FUN=svyquantile, c(0.5), ci=TRUE)
+median_p1_2 <- svyby(~income_p1_2, ~rb010, silc.p1.svy, 
+                     svyquantile, quantiles = c(0.5), keep.var = FALSE)
 # median_p1_2$median <- median_p1_2$income_p1_2/inflation$values*100
 
 # Gini
-gini_p1_2_all <- svyby(~income_p1_2, by=~rb010, design=silc.p1.svy, FUN=svygini)
+gini_p1_2_all <- svyby(~income_p1_2, ~rb010, silc.p1.svy, svygini)
 
 # P80/P20
-p80p20_p1_2 <- svyby(~income_p1_2, by=~rb010, design=silc.p1.svy, FUN=svyqsr)
+p80p20_p1_2 <- svyby(~income_p1_2, ~rb010, silc.p1.svy, svyqsr)
 
 # Top 10% share
-top_p1_2 <- subset(silc.p1.svy, income_p1_2 >= as.numeric(
-  svyquantile(~income_p1_2, silc.p1.svy, quantile=c(0.9))))
+share <- vector("numeric", length(2004:2017))
+j <- 1
 
-topnum_p1_2 <- svyby(~income_p1_2, ~rb010, top_p1_2, svytotal)
+for(year in 2004:2017) {
+  svy_subset <- subset(silc.p1.svy, rb010 == year)
+  svy_top_10 <- subset(svy_subset, income_p1_2 >= as.numeric(svyquantile(~income_p1_2, svy_subset, quantile = c(0.9))))
+  share[j] <- svytotal(~income_p1_2, svy_top_10) / svytotal(~income_p1_2, svy_subset)
+  j <- j + 1
+}
 
-topden_p1_2 <- svyby(~income_p1_2, ~rb010, silc.p1.svy, svytotal)
-
-years_top10_p1_2 <- topnum_p1_2 / topden_p1_2
+years_top10_p1_2 <- data.frame(top_p1_2 = share)
 
 # Table preparation -----------------------------------------------------------
 
-table_p1_2 <- data.frame(mean_p1_2$rb010, mean_p1_2$income_p1_2, 
-                         median_p1_2$income_p1_2, gini_p1_2_all$income_p1_2,
-                         p80p20_p1_2$income_p1_2, years_top10_p1_2$income_p1_2)
+table_p1_2 <- data.frame(mean_p1_2$rb010, round(mean_p1_2$income_p1_2), 
+                         round(median_p1_2$statistic), round(gini_p1_2_all$income_p1_2*100,1),
+                         round(p80p20_p1_2$income_p1_2,1), round(years_top10_p1_2$top_p1_2*100,1))
 
 colnames(table_p1_2)<- c("Jahr", "Mittelwert" ,"Median", "Gini", "P80/P20", 
                          "Top10%")
 
 table_p1_2
-xtable(table_p1_2)
-
+print(xtable(table_p1_2), include.rownames = FALSE)
 
 # Post-tax disposable income --------------------------------------------------
 
 # Mean
-mean_p1_3 <- svyby(~income_p1_3, by=~rb010, design=silc.p1.svy, FUN=svymean)
+mean_p1_3 <- svyby(~income_p1_3, ~rb010, silc.p1.svy, svymean)
 # mean_p1_3$mean <- mean_p1_3$income_p1_3/inflation$values*100
 
 # Median
-median_p1_3 <- svyby(~income_p1_3, by=~rb010, design=silc.p1.svy, 
-                     FUN=svyquantile, c(0.5), ci=TRUE)
+median_p1_3 <- svyby(~income_p1_3, ~rb010, silc.p1.svy, 
+                     svyquantile, quantiles = c(0.5), keep.var = FALSE)
 # median_p1_3$median <- median_p1_3$income_p1_3/inflation$values*100
 
 # Gini
-gini_p1_3_all <- svyby(~income_p1_3, by=~rb010, design=silc.p1.svy, FUN=svygini)
+gini_p1_3_all <- svyby(~income_p1_3, ~rb010, silc.p1.svy, svygini)
 
 # P80/P20
-p80p20_p1_3 <- svyby(~income_p1_3, by=~rb010, design=silc.p1.svy, FUN=svyqsr)
+p80p20_p1_3 <- svyby(~income_p1_3, ~rb010, silc.p1.svy, svyqsr)
 
 # Top 10% share
-top_p1_3 <- subset(silc.p1.svy, income_p1_3 >= as.numeric(
-  svyquantile(~income_p1_3, silc.p1.svy, quantile=c(0.9))))
 
-topnum_p1_3 <- svyby(~income_p1_3, ~rb010, top_p1_3, svytotal)
+share <- vector("numeric", length(2004:2017))
+j <- 1
 
-topden_p1_3 <- svyby(~income_p1_3, ~rb010, silc.p1.svy, svytotal)
+for(year in 2004:2017) {
+  svy_subset <- subset(silc.p1.svy, rb010 == year)
+  svy_top_10 <- subset(svy_subset, income_p1_3 >= as.numeric(svyquantile(~income_p1_3, svy_subset, quantile = c(0.9))))
+  share[j] <- svytotal(~income_p1_3, svy_top_10) / svytotal(~income_p1_3, svy_subset)
+  j <- j + 1
+}
 
-years_top10_p1_3 <- topnum_p1_3 / topden_p1_3
+years_top10_p1_3 <- data.frame(top_p1_3 = share)
 
 # Table preparation -----------------------------------------------------------
 
-table_p1_3 <- data.frame(mean_p1_3$rb010, mean_p1_3$income_p1_3, 
-                         median_p1_3$income_p1_3, gini_p1_3_all$income_p1_3,
-                         p80p20_p1_3$income_p1_3, years_top10_p1_3$income_p1_3)
+table_p1_3 <- data.frame(mean_p1_3$rb010, round(mean_p1_3$income_p1_3), 
+                         round(median_p1_3$statistic), round(gini_p1_3_all$income_p1_3*100,1),
+                         round(p80p20_p1_3$income_p1_3,1), round(years_top10_p1_3$top_p1_3*100,1))
 
 colnames(table_p1_3)<- c("Jahr", "Mittelwert" ,"Median", "Gini", "P80/P20", 
                          "Top10%")
 
 table_p1_3
-xtable(table_p1_3)
+print(xtable(table_p1_3), include.rownames = FALSE)
 
 # -----------------------------------------------------------------------------
 
@@ -172,74 +174,80 @@ xtable(table_p1_3)
 # Pre-tax factor income (Canberra: primary income) ---------------------------
 
 # Mean
-mean_p2_1 <- svyby(~income_p2_1, by=~rb010, design=silc.p2.svy, FUN=svymean)
+mean_p2_1 <- svyby(~income_p2_1, ~rb010, silc.p2.svy, svymean)
 # mean_p2_1$mean <- mean_p2_1$income_p2_1/inflation$values*100
 
 # Median
-median_p2_1 <- svyby(~income_p2_1, by=~rb010, design=silc.p2.svy, 
-                     FUN=svyquantile, c(0.5), ci=TRUE)
+median_p2_1 <- svyby(~income_p2_1, ~rb010, silc.p2.svy, 
+                     svyquantile, quantiles = c(0.5), keep.var = FALSE)
 # median_p2_1$median <- median_p2_1$income_p2_1/inflation$values*100
 
 # Gini
-gini_p2_1_all <- svyby(~income_p2_1, by=~rb010, design=silc.p2.svy, FUN=svygini)
+gini_p2_1_all <- svyby(~income_p2_1, ~rb010, silc.p2.svy, svygini)
 
 # P80/P20
-p80p20_p2_1 <- svyby(~income_p2_1, by=~rb010, design=silc.p2.svy, FUN=svyqsr)
+p80p20_p2_1 <- svyby(~income_p2_1, ~rb010, silc.p2.svy, svyqsr)
 
 # Top 10% share
-top_p2_1 <- subset(silc.p2.svy, income_p2_1 >= as.numeric(
-  svyquantile(~income_p2_1, silc.p2.svy, quantile=c(0.9))))
+share <- vector("numeric", length(2004:2017))
+j <- 1
 
-topnum_p2_1 <- svyby(~income_p2_1, ~rb010, top_p2_1, svytotal)
+for(year in 2004:2017) {
+  svy_subset <- subset(silc.p2.svy, rb010 == year)
+  svy_top_10 <- subset(svy_subset, income_p2_1 >= as.numeric(svyquantile(~income_p2_1, svy_subset, quantile = c(0.9))))
+  share[j] <- svytotal(~income_p2_1, svy_top_10) / svytotal(~income_p2_1, svy_subset)
+  j <- j + 1
+}
 
-topden_p2_1 <- svyby(~income_p2_1, ~rb010, silc.p2.svy, svytotal)
-
-years_top10_p2_1 <- topnum_p2_1 / topden_p2_1
+years_top10_p2_1 <- data.frame(top_p2_1 = share)
 
 # Table preparation -----------------------------------------------------------
 
-table_p2_1 <- data.frame(mean_p2_1$rb010, mean_p2_1$income_p2_1, 
-                         median_p2_1$income_p2_1, gini_p2_1_all$income_p2_1,
-                         p80p20_p2_1$income_p2_1, years_top10_p2_1$income_p2_1)
+table_p2_1 <- data.frame(mean_p2_1$rb010, round(mean_p2_1$income_p2_1), 
+                         round(median_p2_1$statistic), round(gini_p2_1_all$income_p2_1*100,1),
+                         round(p80p20_p2_1$income_p2_1,1), round(years_top10_p2_1$top_p2_1*100, 1))
 
 colnames(table_p2_1)<- c("Jahr", "Mittelwert" ,"Median", "Gini", "P80/P20", 
                          "Top10%")
 
 table_p2_1
-xtable(table_p2_1)
+print(xtable(table_p2_1), include.rownames = FALSE)
 
 # Pre-tax national income -----------------------------------------------------
 
 # Mean
-mean_p2_2 <- svyby(~income_p2_2, by=~rb010, design=silc.p2.svy, FUN=svymean)
+mean_p2_2 <- svyby(~income_p2_2, ~rb010, silc.p2.svy, svymean)
 #mean_p2_2$mean <- mean_p2_2$income_p2_2/inflation$values*100
 
 # Median
-median_p2_2 <- svyby(~income_p2_2, by=~rb010, design=silc.p2.svy, 
-                     FUN=svyquantile, c(0.5), ci=TRUE)
+median_p2_2 <- svyby(~income_p2_2, ~rb010, silc.p2.svy, 
+                     svyquantile, quantiles = c(0.5), keep.var = FALSE)
 #median_p2_2$median <- median_p2_2$income_p2_2/inflation$values*100
 
 # Gini
-gini_p2_2_all <- svyby(~income_p2_2, by=~rb010, design=silc.p2.svy, FUN=svygini)
+gini_p2_2_all <- svyby(~income_p2_2, ~rb010, silc.p2.svy, svygini)
 
 # P80/P20
-p80p20_p2_2 <- svyby(~income_p2_2, by=~rb010, design=silc.p2.svy, FUN=svyqsr)
+p80p20_p2_2 <- svyby(~income_p2_2, ~rb010, silc.p2.svy, svyqsr)
 
 # Top 10% share
-top_p2_2 <- subset(silc.p2.svy, income_p2_2 >= as.numeric(
-  svyquantile(~income_p2_2, silc.p2.svy, quantile=c(0.9))))
+share <- vector("numeric", length(2004:2017))
+j <- 1
 
-topnum_p2_2 <- svyby(~income_p2_2, ~rb010, top_p2_2, svytotal)
+for(year in 2004:2017) {
+  svy_subset <- subset(silc.p2.svy, rb010 == year)
+  svy_top_10 <- subset(svy_subset, income_p2_2 >= as.numeric(svyquantile(~income_p2_2, svy_subset, quantile = c(0.9))))
+  share[j] <- svytotal(~income_p2_2, svy_top_10) / svytotal(~income_p2_2, svy_subset)
+  j <- j + 1
+}
 
-topden_p2_2 <- svyby(~income_p2_2, ~rb010, silc.p2.svy, svytotal)
-
-years_top10_p2_2 <- topnum_p2_2 / topden_p2_2
+years_top10_p2_2 <- data.frame(top_p2_2 = share)
 
 # Table preparation -----------------------------------------------------------
 
-table_p2_2 <- data.frame(mean_p2_2$rb010, mean_p2_2$income_p2_2, 
-                         median_p2_2$income_p2_2, gini_p2_2_all$income_p2_2,
-                         p80p20_p2_2$income_p2_2, years_top10_p2_2$income_p2_2)
+table_p2_2 <- data.frame(mean_p2_2$rb010, round(mean_p2_2$income_p2_2), 
+                         round(median_p2_2$statistic), round(gini_p2_2_all$income_p2_2*100, 1),
+                         round(p80p20_p2_2$income_p2_2,1), round(years_top10_p2_2$top_p2_2*100,1))
 
 colnames(table_p2_2)<- c("Jahr", "Mittelwert" ,"Median", "Gini", "P80/P20", 
                          "Top10%")
@@ -250,35 +258,39 @@ xtable(table_p2_2)
 # Post-tax disposable income -------------------------------------------------
 
 # Mean
-mean_p2_3 <- svyby(~income_p2_3, by=~rb010, design=silc.p2.svy, FUN=svymean)
+mean_p2_3 <- svyby(~income_p2_3, ~rb010, silc.p2.svy, svymean)
 # mean_p2_3$mean <- mean_p2_3$income_p2_3/inflation$values*100
 
 # Median
-median_p2_3 <- svyby(~income_p2_3, by=~rb010, design=silc.p2.svy, 
-                     FUN=svyquantile, c(0.5), ci=TRUE)
+median_p2_3 <- svyby(~income_p2_3, ~rb010, silc.p2.svy, 
+                     svyquantile, quantiles = c(0.5), keep.var = FALSE)
 # median_p2_3$median <- median_p2_3$income_p2_3/inflation$values*100
 
 # Gini
-gini_p2_3_all <- svyby(~income_p2_3, by=~rb010, design=silc.p2.svy, FUN=svygini)
+gini_p2_3_all <- svyby(~income_p2_3, ~rb010, silc.p2.svy, svygini)
 
 # P80/P20
-p80p20_p2_3 <- svyby(~income_p2_3, by=~rb010, design=silc.p2.svy, FUN=svyqsr)
+p80p20_p2_3 <- svyby(~income_p2_3, ~rb010, silc.p2.svy, svyqsr)
 
 # Top 10% share
-top_p2_3 <- subset(silc.p2.svy, income_p2_3 >= as.numeric(
-  svyquantile(~income_p2_3, silc.p2.svy, quantile=c(0.9))))
+share <- vector("numeric", length(2004:2017))
+j <- 1
 
-topnum_p2_3 <- svyby(~income_p2_3, ~rb010, top_p2_3, svytotal)
+for(year in 2004:2017) {
+  svy_subset <- subset(silc.p2.svy, rb010 == year)
+  svy_top_10 <- subset(svy_subset, income_p2_3 >= as.numeric(svyquantile(~income_p2_3, svy_subset, quantile = c(0.9))))
+  share[j] <- svytotal(~income_p2_3, svy_top_10) / svytotal(~income_p2_3, svy_subset)
+  j <- j + 1
+}
 
-topden_p2_3 <- svyby(~income_p2_3, ~rb010, silc.p2.svy, svytotal)
+years_top10_p2_3 <- data.frame(top_p2_3 = share)
 
-years_top10_p2_3 <- topnum_p2_3 / topden_p2_3
 
 # Table preparation -----------------------------------------------------------
 
-table_p2_3 <- data.frame(mean_p2_3$rb010, mean_p2_3$income_p2_3, 
-                         median_p2_3$income_p2_3, gini_p2_3_all$income_p2_3,
-                         p80p20_p2_3$income_p2_3, years_top10_p2_3$income_p2_3)
+table_p2_3 <- data.frame(mean_p2_3$rb010, round(mean_p2_3$income_p2_3), 
+                         round(median_p2_3$statistic), round(gini_p2_3_all$income_p2_3*100,1),
+                         round(p80p20_p2_3$income_p2_3,1), round(years_top10_p2_3$top_p2_3*100,1))
 
 colnames(table_p2_3)<- c("Jahr", "Mittelwert" ,"Median", "Gini", "P80/P20", 
                          "Top10%")
@@ -308,7 +320,7 @@ mean_plot_p1 <- ggplot() +
        title = "Mittelwert vor und nach Steuern",
        subtitle = "Equal Sharing der Haushaltsmitglieder") +
   expand_limits(y = c(12000, 32000)) + 
-  ggsave(file='mean_plot_p1.png',height=4,width=7)
+  ggsave(file='mean_plot_p1.svg',height=4,width=7)
 mean_plot_p1
 
 # Mittelwert vor und nach Steuern P2 Partial Sharing
@@ -328,7 +340,7 @@ mean_plot_p2 <- ggplot() +
        title = "Mittelwert vor und nach Steuern",
        subtitle = "Partial Sharing der Haushaltsmitglieder") +
   expand_limits(y = c(8000, 30000)) + 
-  ggsave(file='mean_plot_p2.png',height=4,width=7)
+  ggsave(file='mean_plot_p2.svg',height=4,width=7)
 mean_plot_p2
 
 # GINI -----------------------------------------------------------------------
@@ -348,7 +360,7 @@ gini_plot_p1 <- ggplot() +
        title = "Gini Koeffizient vor und nach Steuern",
        subtitle = "Equal Sharing der Haushaltsmitglieder") +
   expand_limits(y = c(0.10, 0.60)) + 
-  ggsave(file='gini_plot_p1.png',height=4,width=7)
+  ggsave(file='gini_plot_p1.svg',height=4,width=7)
 gini_plot_p1
 
 # Gini vor und nach Steuern P2
@@ -366,7 +378,7 @@ gini_plot_p2 <- ggplot() +
        title = "Gini Koeffizient vor und nach Steuern",
        subtitle = "Partial Sharing der Haushaltsmitglieder")+
   expand_limits(y = c(0.10, 0.60)) + 
-  ggsave(file='gini_plot_p2.png',height=4,width=7)
+  ggsave(file='gini_plot_p2.svg',height=4,width=7)
 gini_plot_p2
 
 # TOP10% ----------------------------------------------------------------------
@@ -386,7 +398,7 @@ top10_plot_p1 <- ggplot() +
        title = "Anteil am Einkommen der Top 10% vor und nach Steuern",
        subtitle = "Equal Sharing der Haushaltsmitglieder") +
   expand_limits(y = c(0, 0.5)) + 
-  ggsave(file='top10_plot_p1.png',height=4,width=7)
+  ggsave(file='top10_plot_p1.svg',height=4,width=7)
 top10_plot_p1
 
 # Gini vor und nach Steuern P1
@@ -404,6 +416,6 @@ top10_plot_p2 <- ggplot() +
        title = "Anteil am Einkommen der Top 10% vor und nach Steuern",
        subtitle = "Partial Sharing der Haushaltsmitglieder") +
   expand_limits(y = c(0.1, 0.7)) + 
-  ggsave(file='top10_plot_p2.png',height=4,width=7)
+  ggsave(file='top10_plot_p2.svg',height=4,width=7)
 top10_plot_p2
 

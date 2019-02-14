@@ -146,7 +146,6 @@ silc.rp <- left_join(silc.r, silc.p, by = c("personal_id", "rb010" = "pb010",
 # Create age, household ID, gender variables
 silc.rp <- silc.rp %>% 
   mutate(age = rb010 - rb080,
-         gender = factor(rb090, labels = c('Male','Female')),
          id_h = paste0(rx030, rb010)) 
 
 # Create unique IDs for merging, merge country and household ID h,d
@@ -160,8 +159,7 @@ silc.rph <- left_join(silc.rp, silc.h, by = c("id_h", "rb010" = "hb010",
 
 # Replace NA's in silc.rph by 0
 silc.rph[is.na(silc.rph)] <- 0
-# Since some NA's (gender, 3 observations) cannot be replaced - omit!
-silc.rph <- na.omit(silc.rph)
+
 
 
 # P1 EUROSTAT -----------------------------------------------------------------
